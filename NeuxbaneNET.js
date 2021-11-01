@@ -49,16 +49,8 @@ class NeuxbaneNet {
 }
 
 var e = new NeuxbaneNet((create)=>{
-    create.InputImage([2,2,1],[
-            [1,1,
-             0,0],
-
-            [1,0,
-             1,0],
-
-            [0,0,
-             1,1],
-    ]);
+    var TRAINING_DATA_SETS=[];
+    create.InputImage([2,2,1],TRAINING_DATA_SETS[0]);
 
     create.Filter([1,1]);
 });
