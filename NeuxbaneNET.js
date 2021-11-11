@@ -88,6 +88,13 @@ class NeuxbaneNet {
         for(var a=0;a<this.NeuralCore.MathNet.length;a++){
             console.log(this.NeuralCore.MathNet[a].length);
         }
+        var declare="";
+        for(var b=0;b<this.NeuralCore.parameters.weights.length;b++){
+            declare+="n."+this.NeuralCore.parameters.weights[b].name+"="+String(this.NeuralCore.parameters.weights[b].val)+";";
+        }
+        for(var b=0;b<this.NeuralCore.parameters.biases.length;b++){
+            declare+="n."+this.NeuralCore.parameters.biases[b].name+"="+String(this.NeuralCore.parameters.biases[b].val)+";";
+        }this.NeuralCore.declare=declare;
         console.log(`The Neural Network uses approximately ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024 * 100) / 100} MB`);
         return null;
     }
@@ -109,12 +116,19 @@ class NeuxbaneNet {
         for(var b=0;b<this.NeuralCore.parameters.inputs.length;b++){
             declare+="n."+this.NeuralCore.parameters.inputs[b].name+"="+String(this.NeuralCore.parameters.inputs[b].val)+";";
         }
-        for(var b=0;b<this.NeuralCore.parameters.weights.length;b++){
-            declare+="n."+this.NeuralCore.parameters.weights[b].name+"="+String(this.NeuralCore.parameters.weights[b].val)+";";
-        }
-        for(var b=0;b<this.NeuralCore.parameters.biases.length;b++){
-            declare+="n."+this.NeuralCore.parameters.biases[b].name+"="+String(this.NeuralCore.parameters.biases[b].val)+";";
-        }declare+="\n\n";
+
+        if(this.Istraining){
+            var de="";
+            for(var b=0;b<this.NeuralCore.parameters.weights.length;b++){
+                de+="n."+this.NeuralCore.parameters.weights[b].name+"="+String(this.NeuralCore.parameters.weights[b].val)+";";
+            }
+            for(var b=0;b<this.NeuralCore.parameters.biases.length;b++){
+                de+="n."+this.NeuralCore.parameters.biases[b].name+"="+String(this.NeuralCore.parameters.biases[b].val)+";";
+            }
+            this.NeuralCore.declare=de;declare+=de;
+        }else{declare+=this.NeuralCore.declare}
+        
+        declare+="\n\n";
 
         var sigmoid = (x)=>{return 1.0/(1.0+Math.exp(-x))};
         var tanh = (x)=>{return Math.tanh(x)}
@@ -149,6 +163,7 @@ class NeuxbaneNet {
             console.log(epoch,this.getloss());
         }
         this.Istraining=false;
+        return null;
     }
 }
 
@@ -169,13 +184,14 @@ var e = new NeuxbaneNet;
 e.create((create)=>{
     create.Input([[2]]);
     create.Convert();
-    create.FC(1000);
-    create.FC(300);
-    create.FC(1);
+    create.FC(10,'leaky_relu');
+    create.FC(30,'tanh');
+    create.FC(1,'sigmoid');
     return create;
 });
 
 e.dataset = TRAINING_DATA_SETS;
 
+e.train();
 
-while(true){console.log(e.eval([[1,1]]));}
+//for(var a=0;a<30;a++){console.log(e.eval([[1,1]]));}
