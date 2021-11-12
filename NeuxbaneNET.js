@@ -145,7 +145,10 @@ class NeuxbaneNet {
         return er;
     }
 
-    train(learning_rate=0.1,epoch=40){
+    train(Options){
+        if(Options.epoch==undefined){Options.epoch=Infinity};
+        if(Options.learning_rate==undefined){Options.learning_rate=0.07};
+        if(Options.min_loss==undefined){Options.min_loss=0};
         this.Istraining=true;
         let momentum = {weights:[],biases:[]}; // Momentum at neural network training method is like aceleration on speed
         for(let w=0;w<this.NeuralCore.parameters.weights.length;w++){
@@ -154,28 +157,36 @@ class NeuxbaneNet {
         for(let w=0;w<this.NeuralCore.parameters.biases.length;w++){
             momentum.biases.push(0);
         }
-        for(let ep=0;ep<epoch;ep++){
+        let ep=0;
+        while(ep<Options.epoch&&Options.min_loss<this.getloss()){
+            ep++;
             for(let w=0;w<this.NeuralCore.parameters.weights.length;w++){
                 let loss1=this.getloss();
-                this.NeuralCore.parameters.weights[w].val+=learning_rate;
+                this.NeuralCore.parameters.weights[w].val+=Options.learning_rate;
                 let loss2=this.getloss();
-                this.NeuralCore.parameters.weights[w].val-=learning_rate;
-                let gradient=(loss2-loss1)/learning_rate;//x = ∆weight = learning_rate, y = ∆error
-                momentum.weights[w]+=learning_rate*gradient;
+                this.NeuralCore.parameters.weights[w].val-=Options.learning_rate;
+                let gradient=(loss2-loss1)/Options.learning_rate;//x = ∆weight = Options.learning_rate, y = ∆error
+                momentum.weights[w]+=Options.learning_rate*gradient;
                 this.NeuralCore.parameters.weights[w].val-=momentum.weights[w];
             }
             for(let b=0;b<this.NeuralCore.parameters.biases.length;b++){
                 let loss1=this.getloss();
-                this.NeuralCore.parameters.biases[b].val+=learning_rate;
+                this.NeuralCore.parameters.biases[b].val+=Options.learning_rate;
                 let loss2=this.getloss();
-                this.NeuralCore.parameters.biases[b].val-=learning_rate;
-                let gradient=(loss2-loss1)/learning_rate;//x = ∆weight = learning_rate, y = ∆error
-                momentum.biases[b]+=learning_rate*gradient;
+                this.NeuralCore.parameters.biases[b].val-=Options.learning_rate;
+                let gradient=(loss2-loss1)/Options.learning_rate;//x = ∆weight = Options.learning_rate, y = ∆error
+                momentum.biases[b]+=Options.learning_rate*gradient;
                 this.NeuralCore.parameters.biases[b].val-=momentum.biases[b];
             }
             console.log(new Date(),"Epoch",ep,"Loss",this.getloss());
         }
         this.Istraining=false;
+        for(let m=0;m<this.dataset.length;m++){
+            for(let dn=0;dn<this.dataset[m].length;dn++){
+                let res=this.eval(this.dataset[m][dn][0]);
+                console.log(this.dataset[m][dn][0],"->",res);
+            }
+        }
         return null;
     }
 }
@@ -183,17 +194,17 @@ class NeuxbaneNet {
 
 
 
-let TRAINING_DATA_SETS=
+const TRAINING_DATA_SETS=
 [
     [
-        [[ [1,1] ],[1]],
         [[ [0,0] ],[1]],
+        [[ [1,1] ],[1]],
         [[ [0,1] ],[0]],
         [[ [1,0] ],[0]]
     ]
 ];
 
-let e = new NeuxbaneNet;
+var e = new NeuxbaneNet;
 e.create((create)=>{
     create.Input([[2]]);
     create.Convert();
@@ -202,9 +213,9 @@ e.create((create)=>{
     create.FC(1,'sigmoid');
     return create;
 });
- 
-e.dataset = TRAINING_DATA_SETS;
 
-e.train(0.1,1000);
+e.dataset = TRAINING_DATA_SETS;
+const Options = {learning_rate:0.1,min_loss:0.00000001}
+e.train(Options);
 
 //for(let a=0;a<30;a++){console.log(e.eval([[1,1]]));}
