@@ -82,9 +82,6 @@ class NeuxbaneNet {
         this.NeuralCore = code(create);
         //console.log("Math Equation(s):\n-----------");
         console.log(/*"Parameters:\n---------\n",this.NeuralCore.parameters,*/"Done!\nTotal parameters:",this.NeuralCore.parameters.inputs.length+this.NeuralCore.parameters.weights.length+this.NeuralCore.parameters.biases.length);
-        for(let a=0;a<this.NeuralCore.MathNet.length;a++){
-            console.log(this.NeuralCore.MathNet[a].length);
-        }
         let declare="";
         for(let b=0;b<this.NeuralCore.parameters.weights.length;b++){
             declare+="n."+this.NeuralCore.parameters.weights[b].name+"="+String(this.NeuralCore.parameters.weights[b].val)+";";
@@ -97,8 +94,6 @@ class NeuxbaneNet {
     }
 
     eval(inputs=[[2,2],[2,2]]){
-        console.time('total');
-        console.time('declare');
         let ret = [];
         let declare="let n={};";
         let arr = [];
@@ -132,13 +127,9 @@ class NeuxbaneNet {
         let relu = (x)=>{return x>0?x:0}
         let leaky_relu = (x)=>{return x>0?x:x/10}
         let binary = (x)=>{return x>0.5}
-        console.timeEnd('declare');
-        console.time('calculation');
         for(let a=0;a<this.NeuralCore.MathNet.length;a++){
             ret.push(eval(declare+this.NeuralCore.MathNet[a]));
         }
-        console.timeEnd('calculation');
-        console.timeEnd('total');
         return ret;
     }
 
@@ -157,8 +148,15 @@ class NeuxbaneNet {
     train(learning_rate=0.1,epoch=40){
         this.Istraining=true;
         for(let ep=0;ep<epoch;ep++){
+            for(let w=0;w<this.NeuralCore.parameters.weights.length;w++){
+                let loss1=this.getloss();
+                this.NeuralCore.parameters.weights[w].val+=learning_rate;
+                let loss2=this.getloss();
+                this.NeuralCore.parameters.weights[w].val-=learning_rate;
+                let gradient=(loss2-loss1)/learning_rate;//x = ∆weight = learning_rate, y = ∆error
+                this.NeuralCore.parameters.weights[w].val-=learning_rate*gradient;
+            }
             console.log(epoch,this.getloss());
-            
         }
         this.Istraining=false;
         return null;
@@ -182,14 +180,14 @@ let e = new NeuxbaneNet;
 e.create((create)=>{
     create.Input([[2]]);
     create.Convert();
-    create.FC(10,'leaky_relu');
-    create.FC(30,'tanh');
+    create.FC(5,'leaky_relu');
+    create.FC(3,'tanh');
     create.FC(1,'sigmoid');
     return create;
 });
-
+ 
 e.dataset = TRAINING_DATA_SETS;
 
-e.train();
+e.train(0.3,1000);
 
 //for(let a=0;a<30;a++){console.log(e.eval([[1,1]]));}
