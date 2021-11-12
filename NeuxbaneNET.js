@@ -147,6 +147,13 @@ class NeuxbaneNet {
 
     train(learning_rate=0.1,epoch=40){
         this.Istraining=true;
+        let momentum = {weights:[],biases:[]}; // Momentum at neural network training method is like aceleration on speed
+        for(let w=0;w<this.NeuralCore.parameters.weights.length;w++){
+            momentum.weights.push(0);
+        }
+        for(let w=0;w<this.NeuralCore.parameters.biases.length;w++){
+            momentum.biases.push(0);
+        }
         for(let ep=0;ep<epoch;ep++){
             for(let w=0;w<this.NeuralCore.parameters.weights.length;w++){
                 let loss1=this.getloss();
@@ -154,9 +161,19 @@ class NeuxbaneNet {
                 let loss2=this.getloss();
                 this.NeuralCore.parameters.weights[w].val-=learning_rate;
                 let gradient=(loss2-loss1)/learning_rate;//x = ∆weight = learning_rate, y = ∆error
-                this.NeuralCore.parameters.weights[w].val-=learning_rate*gradient;
+                momentum.weights[w]+=learning_rate*gradient;
+                this.NeuralCore.parameters.weights[w].val-=momentum.weights[w];
             }
-            console.log(epoch,this.getloss());
+            for(let b=0;b<this.NeuralCore.parameters.biases.length;b++){
+                let loss1=this.getloss();
+                this.NeuralCore.parameters.biases[b].val+=learning_rate;
+                let loss2=this.getloss();
+                this.NeuralCore.parameters.biases[b].val-=learning_rate;
+                let gradient=(loss2-loss1)/learning_rate;//x = ∆weight = learning_rate, y = ∆error
+                momentum.biases[b]+=learning_rate*gradient;
+                this.NeuralCore.parameters.biases[b].val-=momentum.biases[b];
+            }
+            console.log(new Date(),"Epoch",ep,"Loss",this.getloss());
         }
         this.Istraining=false;
         return null;
@@ -180,7 +197,7 @@ let e = new NeuxbaneNet;
 e.create((create)=>{
     create.Input([[2]]);
     create.Convert();
-    create.FC(5,'leaky_relu');
+    create.FC(4,'leaky_relu');
     create.FC(3,'tanh');
     create.FC(1,'sigmoid');
     return create;
@@ -188,6 +205,6 @@ e.create((create)=>{
  
 e.dataset = TRAINING_DATA_SETS;
 
-e.train(0.3,1000);
+e.train(0.1,1000);
 
 //for(let a=0;a<30;a++){console.log(e.eval([[1,1]]));}
