@@ -48,6 +48,15 @@ class NeuxbaneNet {
         }
 
 
+        create.Kernel = (size=[64,64])=>{//2Dimension 64x64
+            return null;
+        }
+
+        create.MaxPooling = ()=>{
+            return null;
+        }
+
+
         create.Convert = ()=>{
             let net = [];
             for(let a=0;a<create.MathNet.length;a++){
@@ -169,8 +178,8 @@ class NeuxbaneNet {
                     let loss2=this.getloss();
                     this.NeuralCore.parameters.weights[w].val-=Options.learning_rate;this.IsUpdate=true;
                     let gradient=(loss2-loss1)/(Options.learning_rate);//x = ∆weight = Options.learning_rate, y = ∆error
-                    momentum.weights[w]+=Options.learning_rate*gradient*1.1;
-                    //if(momentum.weights[w]>0!=gradient){momentum.weights[w]/=1.5}
+                    momentum.weights[w]+=Options.learning_rate*gradient;
+                    //if(momentum.weights[w]>0!=gradient){momentum.weights[w]/=1.0125}
                     this.NeuralCore.parameters.weights[w].val-=momentum.weights[w];
                     this.IsUpdate=true;
                 }
@@ -180,8 +189,8 @@ class NeuxbaneNet {
                     let loss2=this.getloss();
                     this.NeuralCore.parameters.biases[b].val-=Options.learning_rate;this.IsUpdate=true;
                     let gradient=(loss2-loss1)/(Options.learning_rate);//x = ∆weight = Options.learning_rate, y = ∆error
-                    momentum.biases[b]+=Options.learning_rate*gradient*1.1;
-                    //if(momentum.biases[b]>0!=gradient){momentum.biases[b]/=1.5}
+                    momentum.biases[b]+=Options.learning_rate*gradient;
+                    //if(momentum.biases[b]>0!=gradient){momentum.biases[b]/=1.0125}
                     this.NeuralCore.parameters.biases[b].val-=momentum.biases[b];
                     this.IsUpdate=true;
                 }
@@ -215,13 +224,13 @@ var e = new NeuxbaneNet;
 e.create((create)=>{
     create.Input([[2]]);
     create.Convert();
-    create.FC(7,'leaky_relu');
+    create.FC(4,'leaky_relu');
     create.FC(3,'leaky_relu');
     create.FC(1,'sigmoid');
     return create;
 });
 e.dataset = TRAINING_DATA_SETS;
-const Options = {learning_rate:0.12,min_loss:0}
+const Options = {learning_rate:0.3,min_loss:0}
 e.train(Options);
 
 //for(let a=0;a<30;a++){console.log(e.eval([[1,1]]));}
