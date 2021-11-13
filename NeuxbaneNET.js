@@ -1,7 +1,3 @@
-function dot(A=[[1,2],[3,4],[5,6]],B=[[5,1],[1,1]]){
-    let res=[];for(let i=0;i<A.length;i++){let a=[];for(let j=0;j<B.length;j++){let r=0;for(let k=0;k<B[j].length;k++){r+=A[i][k]*B[k][j]}a.push(r);}res.push(a);}return res;
-}
-
 class NeuxbaneNet {
     constructor(){
         this.dataset = {};
@@ -14,7 +10,7 @@ class NeuxbaneNet {
     create(code=(create)=>{return[]}){
         console.log("Creating Neural Network...\n")
         let create = {};
-        create.parameters = {inputs:[],weights:[],biases:[]};
+        create.parameters = {inputs:[],weights:[],biases:[], neurons:[]};
         create.netID = -1;
         create.MathNet = [];
 
@@ -43,6 +39,7 @@ class NeuxbaneNet {
                 }
             }
             create.MathNet.push(net);
+            create.netID++
             return null;
         }
 
@@ -70,30 +67,31 @@ class NeuxbaneNet {
 
 
         create.FC = (size,actfunc="1*")=>{
-            create.netID++
             let net = [];
             for(let a=0;a<size;a++){
                 let eva = actfunc+"(";
                 for(let b=0;b<create.MathNet[create.netID].length;b++){
-                    create.parameters.weights.push({name:"W_ID"+[create.netID,a,b].join('_'),val:Math.random()*2-1});
-                    eva+="n.N_"+String(b)+"*"+"n.W_ID"+[create.netID,a,b].join('_');
+                    create.parameters.weights.push({name:"W_ID"+[create.netID,a,b].join('_'),val:Math.random()*2-1,at:create.netID,id:b});
+                    create.parameters.neurons.push({name:"N_"+[create.netID,b].join('_'),val:Math.random()*2-1});
+                    eva+="n.N_"+[create.netID,b].join('_')+"*"+"n.W_ID"+[create.netID,a,b].join('_');
                     if(create.MathNet[create.netID].length-1!=b){eva+="+";}
                     else{
                         eva+="+n.B_ID"+[create.netID,a].join('_');
-                        create.parameters.biases.push({name:"B_ID"+[create.netID,a].join('_'),val:Math.random()*2-1});
+                        create.parameters.biases.push({name:"B_ID"+[create.netID,a].join('_'),val:Math.random()*2-1,at:create.netID,id:b});
                         eva+=")";}
                 }
                 net.push(eva);
             }
             create.MathNet.push(net);
+            create.netID++
             return null;
         }
         this.NeuralCore = code(create);
-        // console.log("Math Equation(s):\n-----------");
-        // for(let a=0;a<this.NeuralCore.MathNet.length;a++){
-        //     console.log(`\nMath Equation Output ${String(a)}\n--------\n${this.NeuralCore.MathNet[a]}`)
-        // }
-        console.log("\n\nParameters:\n---------\n",this.NeuralCore.parameters,"\nDone!\nTotal parameters:",this.NeuralCore.parameters.inputs.length+this.NeuralCore.parameters.weights.length+this.NeuralCore.parameters.biases.length);
+        console.log("Math Equation(s):\n-----------");
+        for(let a=0;a<this.NeuralCore.MathNet.length;a++){
+            console.log(`\nMath Equation Output ${String(a)}\n--------\n${this.NeuralCore.MathNet[a].join('\n')}`)
+        }
+        console.log("\n\nParameters:\n---------\n",this.NeuralCore.parameters,"\nDone!\nTotal parameters:",this.NeuralCore.parameters.inputs.length+this.NeuralCore.parameters.weights.length+this.NeuralCore.parameters.biases.length+this.NeuralCore.parameters.neurons.length);
         let declare="";
         for(let b=0;b<this.NeuralCore.parameters.weights.length;b++){
             declare+="n."+this.NeuralCore.parameters.weights[b].name+"="+String(this.NeuralCore.parameters.weights[b].val)+";";
@@ -101,12 +99,11 @@ class NeuxbaneNet {
         for(let b=0;b<this.NeuralCore.parameters.biases.length;b++){
             declare+="n."+this.NeuralCore.parameters.biases[b].name+"="+String(this.NeuralCore.parameters.biases[b].val)+";";
         }this.NeuralCore.declare=declare;
-        console.log(`The Neural Network uses approximately ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024 * 100) / 100} MB`);
+        try{console.log(`The Neural Network uses approximately ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024 * 100) / 100} MB`);}catch(e){}
         return null;
     }
   
-    eval(inputs=[[2,2],[2,2]]){
-        let ret = [];
+    eval(inputs=[[2,2],[2,2]],at=Infinity,id=Infinity){
         let declare="let n={};";
         let arr = [];
         for(let a=0;a<inputs.length;a++){
@@ -139,20 +136,22 @@ class NeuxbaneNet {
         let binary = (x)=>{return x>0.5}
         let neurons_res=[];
         for(let a=0;a<this.NeuralCore.MathNet.length;a++){
-            let dec_neurons="";
+            let dec_neurons="";let brek=false;
             for(let b=0;b<neurons_res.length;b++){
-                dec_neurons+="n.N_"+String(b)+"="+String(neurons_res[b])+";";
+                if(at!=Infinity){if(this.NeuralCore.parameters.weights.filter((data)=>{return data.at==at&&data.id==id})!=[]){brek=true}};
+                if(at!=Infinity){if(this.NeuralCore.parameters.biases.filter((data)=>{return data.at==at&&data.id==id})!=[]){brek=true}};
+                dec_neurons+="n.N_"+[a-1,b].join('_')+"="+String(neurons_res[b])+";";
             } dec_neurons+="\n";
-            neurons_res=[]
+            neurons_res=[];
             for(let b=0;b<this.NeuralCore.MathNet[a].length;b++){
                 let res = eval(declare+dec_neurons+this.NeuralCore.MathNet[a][b]);
                 neurons_res.push(res);
             }
-            ret=neurons_res;
             //console.log(neurons_res,declare,dec_neurons,this.NeuralCore.MathNet[a]);
         }
-        return ret;
+        return neurons_res;
     }
+
 
     getloss(){
         let er=0;
@@ -166,16 +165,27 @@ class NeuxbaneNet {
         return er;
     }
 
+    getError(at=0,name=""){
+        let er=0;
+        for(let m=0;m<this.dataset.length;m++){
+            for(let dn=0;dn<this.dataset[m].length;dn++){
+                console.log(m)
+            }
+        }
+        return er;
+    }
+
     train(Options){
+        console.log('training...');
         if(Options.epoch==undefined){Options.epoch=Infinity};
-        if(Options.learning_rate==undefined){Options.learning_rate=0.07};
+        if(Options.learning_rate==undefined){Options.learning_rate=0.1};
         if(Options.min_loss==undefined){Options.min_loss=0};
         let momentum = {weights:[],biases:[]}; // Momentum at neural network training method is like aceleration on speed
         for(let w=0;w<this.NeuralCore.parameters.weights.length;w++){
-            momentum.weights.push(0);
+            momentum.weights.push(Math.random()-0.5);
         }
         for(let w=0;w<this.NeuralCore.parameters.biases.length;w++){
-            momentum.biases.push(0);
+            momentum.biases.push(Math.random()-0.5);
         }
         let ep=0;
         try{
@@ -188,7 +198,7 @@ class NeuxbaneNet {
                     this.NeuralCore.parameters.weights[w].val-=Options.learning_rate;this.IsUpdate=true;
                     let gradient=(loss2-loss1)/(Options.learning_rate);//x = ∆weight = Options.learning_rate, y = ∆error
                     momentum.weights[w]+=Options.learning_rate*gradient;
-                    //if(momentum.weights[w]>0!=gradient){momentum.weights[w]/=1.0125}
+                    //momentum.weights[w]*=loss2>=1?(loss2*Options.learning_rate*10):1;
                     this.NeuralCore.parameters.weights[w].val-=momentum.weights[w];
                     this.IsUpdate=true;
                 }
@@ -199,7 +209,7 @@ class NeuxbaneNet {
                     this.NeuralCore.parameters.biases[b].val-=Options.learning_rate;this.IsUpdate=true;
                     let gradient=(loss2-loss1)/(Options.learning_rate);//x = ∆weight = Options.learning_rate, y = ∆error
                     momentum.biases[b]+=Options.learning_rate*gradient;
-                    //if(momentum.biases[b]>0!=gradient){momentum.biases[b]/=1.0125}
+                    //momentum.biases[b]*=loss2>=1?(loss2*Options.learning_rate*10):1;
                     this.NeuralCore.parameters.biases[b].val-=momentum.biases[b];
                     this.IsUpdate=true;
                 }
@@ -232,15 +242,12 @@ const TRAINING_DATA_SETS=
 var e = new NeuxbaneNet;
 e.create((create)=>{
     create.Input([[2]]);//1 Dimension, 2 point
-    create.FC(300,'tanh');
-    create.FC(900,'tanh');
-    create.FC(1000,'tanh');
-    create.FC(50,'tanh');
+    create.FC(3,'leaky_relu');
     create.FC(1,'sigmoid');
     return create;
 });
 e.dataset = TRAINING_DATA_SETS;
-const Options = {learning_rate:0.3,min_loss:1e-5}
-e.train(Options);
-
+const Options = {learning_rate:0.3,min_loss:0}
+//e.train(Options);
+console.log(e.getError())
 //for(let a=0;a<3;a++){console.log(e.eval([[a,2]]));}
